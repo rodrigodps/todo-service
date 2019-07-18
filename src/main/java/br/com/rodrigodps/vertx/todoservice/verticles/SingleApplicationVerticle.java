@@ -5,6 +5,7 @@ import br.com.rodrigodps.vertx.todoservice.entity.Todo;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -16,6 +17,7 @@ import io.vertx.redis.RedisOptions;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class SingleApplicationVerticle extends AbstractVerticle {
 
@@ -83,28 +85,60 @@ public class SingleApplicationVerticle extends AbstractVerticle {
 
     }
 
-    private void handleDeleteAll(RoutingContext routingContext) {
+    private void handleGetTodo(RoutingContext context) {
+        String todoID = context.request().getParam("todoId");
+        if (todoID == null)
+            sendError(400, context.response());
+        else {
+            redis.hget(Constants.REDIS_TODO_KEY, todoID, x -> {
+                if (x.succeeded()) {
+                    String result = x.result();
+                    if (result == null)
+                        sendError(404, context.response());
+                    else {
+                        context.response()
+                                .putHeader("content-type", "application/json")
+                                .end(result);
+                    }
+                } else
+                    sendError(503, context.response());
+            });
+        }
+    }
+
+    private void handleGetAll(RoutingContext context) {
+        redis.hvals(Constants.REDIS_TODO_KEY, res -> {
+            if (res.succeeded()) {
+                String encoded = Json.encodePrettily(
+                        res.result().stream()
+                                .map(x -> new Todo((String) x))
+                                .collect(Collectors.toList()));
+                context.response()
+                        .putHeader("content-type", "application/json")
+                        .end(encoded);
+            } else
+                sendError(503, context.response());
+        });
+    }
+
+    private void handleCreateTodo(RoutingContext context) {
 
     }
 
-    private void handleDeleteOne(RoutingContext routingContext) {
+    private void handleUpdateTodo(RoutingContext context) {
 
     }
 
-    private void handleUpdateTodo(RoutingContext routingContext) {
+    private void handleDeleteOne(RoutingContext context) {
 
     }
 
-    private void handleCreateTodo(RoutingContext routingContext) {
+    private void handleDeleteAll(RoutingContext context) {
 
     }
 
-    private void handleGetAll(RoutingContext routingContext) {
-
-    }
-
-    private void handleGetTodo(RoutingContext routingContext) {
-
+    private void sendError(int statusCode, HttpServerResponse response) {
+        response.setStatusCode(statusCode).end();
     }
 
 }
