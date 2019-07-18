@@ -2,9 +2,6 @@ package br.com.rodrigodps.vertx.todoservice;
 
 public class Constants {
 
-    private Constants() {
-    }
-
     /**
      * API Route
      */
@@ -14,5 +11,13 @@ public class Constants {
     public static final String API_UPDATE = "/todos/:todoId";
     public static final String API_DELETE = "/todos/:todoId";
     public static final String API_DELETE_ALL = "/todos";
+
+    /**
+     * REDIS
+     */
+    public static final String REDIS_TODO_KEY = "VERT_TODO";
+
+    private Constants() {
+    }
 
 }

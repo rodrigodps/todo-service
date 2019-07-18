@@ -1,17 +1,21 @@
 package br.com.rodrigodps.vertx.todoservice.verticles;
 
 import br.com.rodrigodps.vertx.todoservice.Constants;
+import br.com.rodrigodps.vertx.todoservice.entity.Todo;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.redis.RedisClient;
+import io.vertx.redis.RedisOptions;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
 
 public class SingleApplicationVerticle extends AbstractVerticle {
 
@@ -19,12 +23,13 @@ public class SingleApplicationVerticle extends AbstractVerticle {
     private static final String REDIS_HOST = "127.0.0.1";
     private static final int HTTP_PORT = 8082;
     private static final int REDIS_PORT = 6379;
+    private static final Logger LOGGER = Logger.getLogger(SingleApplicationVerticle.class.getName());
 
     private RedisClient redis;
 
     @Override
     public void start(Future<Void> future) throws Exception {
-//        initData();
+        initData();
 
         Router router = Router.router(vertx);
         // CORS support
@@ -58,6 +63,24 @@ public class SingleApplicationVerticle extends AbstractVerticle {
             else
                 future.fail(result.cause());
         });
+    }
+
+    private void initData() {
+        RedisOptions config = new RedisOptions()
+                .setHost(config().getString("redis.host", REDIS_HOST))
+                .setPort(config().getInteger("redis.port", REDIS_PORT));
+
+        this.redis = RedisClient.create(vertx, config); // create redis client
+
+        redis.hset(Constants.REDIS_TODO_KEY, "24",
+                Json.encodePrettily(new Todo(24, "Something to do...", false, 1, "todo/ex")),
+                res -> {
+                    if (res.failed()) {
+                        LOGGER.severe("Redis service is not running!");
+                        res.cause().printStackTrace();
+                    }
+                });
+
     }
 
     private void handleDeleteAll(RoutingContext routingContext) {
