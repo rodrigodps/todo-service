@@ -1,9 +1,11 @@
 package br.com.rodrigodps.vertx.todoservice.verticles;
 
+import br.com.rodrigodps.vertx.todoservice.Constants;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.redis.RedisClient;
@@ -24,7 +26,7 @@ public class SingleApplicationVerticle extends AbstractVerticle {
     public void start(Future<Void> future) throws Exception {
 //        initData();
 
-        Router router = Router.router(vertx); // <1>
+        Router router = Router.router(vertx);
         // CORS support
         Set<String> allowHeaders = new HashSet<>();
         allowHeaders.add("x-requested-with");
@@ -38,22 +40,48 @@ public class SingleApplicationVerticle extends AbstractVerticle {
         allowMethods.add(HttpMethod.DELETE);
         allowMethods.add(HttpMethod.PATCH);
 
-        router.route().handler(CorsHandler.create("*") // <2>
-                .allowedHeaders(allowHeaders)
-                .allowedMethods(allowMethods));
-        router.route().handler(BodyHandler.create()); // <3>
+        router.route().handler(CorsHandler.create("*").allowedHeaders(allowHeaders).allowedMethods(allowMethods));
+        router.route().handler(BodyHandler.create());
 
 
-        // TODO:routes
+        // routes
+        router.get(Constants.API_GET).handler(this::handleGetTodo);
+        router.get(Constants.API_LIST_ALL).handler(this::handleGetAll);
+        router.post(Constants.API_CREATE).handler(this::handleCreateTodo);
+        router.patch(Constants.API_UPDATE).handler(this::handleUpdateTodo);
+        router.delete(Constants.API_DELETE).handler(this::handleDeleteOne);
+        router.delete(Constants.API_DELETE_ALL).handler(this::handleDeleteAll);
 
-        vertx.createHttpServer() // <4>
-                .requestHandler(router::accept)
-                .listen(HTTP_PORT, HTTP_HOST, result -> {
-                    if (result.succeeded())
-                        future.complete();
-                    else
-                        future.fail(result.cause());
-                });
+        vertx.createHttpServer().requestHandler(router::accept).listen(HTTP_PORT, HTTP_HOST, result -> {
+            if (result.succeeded())
+                future.complete();
+            else
+                future.fail(result.cause());
+        });
+    }
+
+    private void handleDeleteAll(RoutingContext routingContext) {
+
+    }
+
+    private void handleDeleteOne(RoutingContext routingContext) {
+
+    }
+
+    private void handleUpdateTodo(RoutingContext routingContext) {
+
+    }
+
+    private void handleCreateTodo(RoutingContext routingContext) {
+
+    }
+
+    private void handleGetAll(RoutingContext routingContext) {
+
+    }
+
+    private void handleGetTodo(RoutingContext routingContext) {
+
     }
 
 }
