@@ -178,11 +178,24 @@ public class SingleApplicationVerticle extends AbstractVerticle {
     }
 
     private void handleDeleteOne(RoutingContext context) {
-
+        String todoID = context.request().getParam("todoId");
+        redis.hdel(Constants.REDIS_TODO_KEY, todoID,
+                res -> {
+                    if (res.succeeded())
+                        context.response().setStatusCode(204).end();
+                    else
+                        sendError(503, context.response());
+                });
     }
 
     private void handleDeleteAll(RoutingContext context) {
-
+        redis.del(Constants.REDIS_TODO_KEY,
+                res -> {
+                    if (res.succeeded())
+                        context.response().setStatusCode(204).end();
+                    else
+                        sendError(503, context.response());
+                });
     }
 
     private void sendError(int statusCode, HttpServerResponse response) {
