@@ -6,6 +6,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -122,7 +123,22 @@ public class SingleApplicationVerticle extends AbstractVerticle {
     }
 
     private void handleCreateTodo(RoutingContext context) {
-
+        try {
+            final Todo todo = wrapObject(new Todo(context.getBodyAsString()), context);
+            final String encoded = Json.encodePrettily(todo);
+            redis.hset(Constants.REDIS_TODO_KEY, String.valueOf(todo.getId()),
+                    encoded, res -> {
+                        if (res.succeeded())
+                            context.response()
+                                    .setStatusCode(201)
+                                    .putHeader("content-type", "application/json; charset=utf-8")
+                                    .end(encoded);
+                        else
+                            sendError(503, context.response());
+                    });
+        } catch (DecodeException e) {
+            sendError(400, context.response());
+        }
     }
 
     private void handleUpdateTodo(RoutingContext context) {
@@ -139,6 +155,16 @@ public class SingleApplicationVerticle extends AbstractVerticle {
 
     private void sendError(int statusCode, HttpServerResponse response) {
         response.setStatusCode(statusCode).end();
+    }
+
+    private Todo wrapObject(Todo todo, RoutingContext context) {
+        int id = todo.getId();
+        if (id > Todo.getIncId()) {
+            Todo.setIncIdWith(id);
+        } else if (id == 0)
+            todo.setIncId();
+        todo.setUrl(context.request().absoluteURI() + "/" + todo.getId());
+        return todo;
     }
 
 }
