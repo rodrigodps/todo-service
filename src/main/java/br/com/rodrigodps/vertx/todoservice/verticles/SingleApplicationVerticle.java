@@ -142,7 +142,39 @@ public class SingleApplicationVerticle extends AbstractVerticle {
     }
 
     private void handleUpdateTodo(RoutingContext context) {
+        try {
+            String todoID = context.request().getParam("todoId");
+            final Todo newTodo = new Todo(context.getBodyAsString());
+            // handle error
+            if (todoID == null || newTodo == null) {
+                sendError(400, context.response());
+                return;
+            }
 
+            redis.hget(Constants.REDIS_TODO_KEY, todoID,
+                    x -> {
+                        if (x.succeeded()) {
+                            String result = x.result();
+                            if (result == null)
+                                sendError(404, context.response());
+                            else {
+                                Todo oldTodo = new Todo(result);
+                                String response = Json.encodePrettily(oldTodo.merge(newTodo));
+                                redis.hset(Constants.REDIS_TODO_KEY, todoID, response,
+                                        res -> {
+                                            if (res.succeeded()) {
+                                                context.response()
+                                                        .putHeader("content-type", "application/json")
+                                                        .end(response);
+                                            }
+                                        });
+                            }
+                        } else
+                            sendError(503, context.response());
+                    });
+        } catch (DecodeException e) {
+            sendError(400, context.response());
+        }
     }
 
     private void handleDeleteOne(RoutingContext context) {
