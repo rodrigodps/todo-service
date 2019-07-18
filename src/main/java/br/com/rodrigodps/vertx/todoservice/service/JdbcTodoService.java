@@ -1,11 +1,16 @@
 package br.com.rodrigodps.vertx.todoservice.service;
 
 import br.com.rodrigodps.vertx.todoservice.entity.Todo;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.sql.SQLConnection;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -47,36 +52,146 @@ public class JdbcTodoService implements TodoService {
 
     @Override
     public Future<Boolean> initData() {
-        return null;
+        Future<Boolean> result = Future.future();
+        client.getConnection(connHandler(result, connection ->
+                connection.execute(SQL_CREATE, create -> {
+                    if (create.succeeded()) {
+                        result.complete(true);
+                    } else {
+                        result.fail(create.cause());
+                    }
+                    connection.close();
+                })));
+        return result;
     }
 
     @Override
     public Future<Boolean> insert(Todo todo) {
-        return null;
+        Future<Boolean> result = Future.future();
+        client.getConnection(connHandler(result,
+                connection -> {
+                    connection.updateWithParams(SQL_INSERT, new JsonArray()
+                            .add(todo.getId())
+                            .add(todo.getTitle())
+                            .add(todo.isCompleted())
+                            .add(todo.getOrder())
+                            .add(todo.getUrl()), r -> {
+                        if (r.failed()) {
+                            result.fail(r.cause());
+                        } else {
+                            result.complete(true);
+                        }
+                        connection.close();
+                    });
+                }));
+        return result;
     }
 
     @Override
     public Future<List<Todo>> getAll() {
-        return null;
+        Future<List<Todo>> result = Future.future();
+        client.getConnection(connHandler(result, connection -> {
+            connection.query(SQL_QUERY, r -> {
+                if (r.failed()) {
+                    result.fail(r.cause());
+                } else {
+                    List<Todo> list = new ArrayList<>();
+                    r.result().getRows().forEach(x -> {
+                        list.add(new Todo(x));
+                    });
+                    result.complete(list);
+                }
+                connection.close();
+            });
+        }));
+        return result;
     }
 
     @Override
     public Future<Optional<Todo>> getCertain(String todoID) {
-        return null;
+        Future<Optional<Todo>> result = Future.future();
+        client.getConnection(connHandler(result, connection -> {
+            connection.queryWithParams(SQL_QUERY, new JsonArray().add(todoID), r -> {
+                if (r.failed()) {
+                    result.fail(r.cause());
+                } else {
+                    List<JsonObject> list = r.result().getRows();
+                    if (list == null || list.isEmpty()) {
+                        result.complete(Optional.empty());
+                    } else {
+                        result.complete(Optional.of(new Todo(list.get(0))));
+                    }
+                }
+                connection.close();
+            });
+        }));
+        return result;
     }
 
     @Override
     public Future<Todo> update(String todoId, Todo newTodo) {
-        return null;
+        Future<Todo> result = Future.future();
+        client.getConnection(connHandler(result,
+                connection -> {
+                    connection.updateWithParams(SQL_UPDATE, new JsonArray()
+                            .add(newTodo.getId())
+                            .add(newTodo.getTitle())
+                            .add(newTodo.isCompleted())
+                            .add(newTodo.getOrder())
+                            .add(newTodo.getUrl())
+                            .add(newTodo.getId()), r -> {
+                        if (r.failed()) {
+                            result.fail(r.cause());
+                        } else {
+                            result.complete(newTodo);
+                        }
+                        connection.close();
+                    });
+                }));
+        return result;
     }
 
     @Override
     public Future<Boolean> delete(String todoId) {
-        return null;
+        Future<Boolean> result = Future.future();
+        client.getConnection(connHandler(result, connection -> {
+            connection.updateWithParams(SQL_DELETE, new JsonArray().add(todoId), r -> {
+                if (r.failed()) {
+                    result.fail(r.cause());
+                } else {
+                    result.complete(true);
+                }
+                connection.close();
+            });
+        }));
+        return result;
     }
 
     @Override
     public Future<Boolean> deleteAll() {
-        return null;
+        Future<Boolean> result = Future.future();
+        client.getConnection(connHandler(result, connection -> {
+            connection.update(SQL_DELETE_ALL, r -> {
+                if (r.failed()) {
+                    result.fail(r.cause());
+                } else {
+                    result.complete(true);
+                }
+                connection.close();
+            });
+        }));
+        return result;
     }
+
+    private Handler<AsyncResult<SQLConnection>> connHandler(Future future, Handler<SQLConnection> handler) {
+        return conn -> {
+            if (conn.succeeded()) {
+                final SQLConnection connection = conn.result();
+                handler.handle(connection);
+            } else {
+                future.fail(conn.cause());
+            }
+        };
+    }
+
 }
