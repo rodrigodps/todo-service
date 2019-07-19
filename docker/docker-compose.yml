@@ -1,0 +1,27 @@
+db:
+  image: mysql:5.7.26
+  environment:
+    MYSQL_DATABASE: 'vertx_todo'
+    MYSQL_ROOT_PASSWORD: 'admin'
+  expose:
+    - 3306
+  ports:
+    - 3306:3306
+
+redis:
+  image: redis
+  expose:
+    - 6379
+  ports:
+    - 6379:6379
+
+app:
+  build: .
+  ports:
+    - 8082:8082
+  links: 
+    - db
+    - redis
+  environment:
+    VERTX_CONFIG: 'jdbc'
+    #VERTX_CONFIG: 'redis'

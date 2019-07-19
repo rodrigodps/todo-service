@@ -1,0 +1,5 @@
+{
+  "service.type": "redis",
+  "redis.host": "redis",
+  "redis.port": 6379
+}
