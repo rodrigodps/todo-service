@@ -26,24 +26,22 @@ import java.util.logging.Logger;
 
 public class TodoVerticle extends AbstractVerticle {
 
-    private static final String HOST = "0.0.0.0";
-    private static final int PORT = 8082;
     private static final Logger LOGGER = Logger.getLogger(TodoVerticle.class.getName());
 
     private TodoService service;
 
     private void initData() {
-        final String serviceType = config().getString("service.type", "redis");
+        final String serviceType = config().getString("service.type", Constants.SERVICE_TYPE_REDIS);
         LOGGER.info("Service Type: " + serviceType);
         switch (serviceType) {
-            case "jdbc":
+            case Constants.SERVICE_TYPE_JDBC:
                 service = new JdbcTodoService(vertx, config());
                 break;
-            case "redis":
+            case Constants.SERVICE_TYPE_REDIS:
             default:
                 RedisOptions config = new RedisOptions()
-                        .setHost(config().getString("redis.host", "127.0.0.1"))
-                        .setPort(config().getInteger("redis.port", 6379));
+                        .setHost(config().getString("redis.host", Constants.REDIS_HOST))
+                        .setPort(config().getInteger("redis.port", Constants.REDIS_PORT));
                 service = new RedisTodoService(vertx, config);
         }
 
@@ -61,7 +59,7 @@ public class TodoVerticle extends AbstractVerticle {
 
         vertx.createHttpServer()
                 .requestHandler(router::accept)
-                .listen(PORT, HOST, result -> {
+                .listen(Constants.HTTP_PORT, Constants.HTTP_HOST, result -> {
                     if (result.succeeded())
                         future.complete();
                     else

@@ -22,10 +22,6 @@ import java.util.stream.Collectors;
 
 public class SingleApplicationVerticle extends AbstractVerticle {
 
-    private static final String HTTP_HOST = "0.0.0.0";
-    private static final String REDIS_HOST = "127.0.0.1";
-    private static final int HTTP_PORT = 8082;
-    private static final int REDIS_PORT = 6379;
     private static final Logger LOGGER = Logger.getLogger(SingleApplicationVerticle.class.getName());
 
     private RedisClient redis;
@@ -60,7 +56,7 @@ public class SingleApplicationVerticle extends AbstractVerticle {
         router.delete(Constants.API_DELETE).handler(this::handleDeleteOne);
         router.delete(Constants.API_DELETE_ALL).handler(this::handleDeleteAll);
 
-        vertx.createHttpServer().requestHandler(router::accept).listen(HTTP_PORT, HTTP_HOST, result -> {
+        vertx.createHttpServer().requestHandler(router::accept).listen(Constants.HTTP_PORT, Constants.HTTP_HOST, result -> {
             if (result.succeeded())
                 future.complete();
             else
@@ -70,8 +66,8 @@ public class SingleApplicationVerticle extends AbstractVerticle {
 
     private void initData() {
         RedisOptions config = new RedisOptions()
-                .setHost(config().getString("redis.host", REDIS_HOST))
-                .setPort(config().getInteger("redis.port", REDIS_PORT));
+                .setHost(config().getString("redis.host", Constants.REDIS_HOST))
+                .setPort(config().getInteger("redis.port", Constants.REDIS_PORT));
 
         this.redis = RedisClient.create(vertx, config); // create redis client
 

@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class RedisTodoService implements TodoService {
 
     private static final Logger LOGGER = Logger.getLogger(RedisTodoService.class.getName());
+
     private Vertx vertx;
     private RedisOptions config;
     private RedisClient redis;
@@ -29,7 +30,7 @@ public class RedisTodoService implements TodoService {
     @Override
     public Future<Boolean> initData() {
         this.redis = RedisClient.create(vertx, config);
-        return insert(new Todo(24, "Something to do...", false, 1, "todo/ex"));
+        return Future.succeededFuture(true);
     }
 
     @Override
@@ -65,7 +66,7 @@ public class RedisTodoService implements TodoService {
     public Future<Optional<Todo>> getCertain(String todoId) {
         Future<Optional<Todo>> result = Future.future();
         if (todoId == null)
-            result.fail("null");
+            result.fail("Param \"todoId\" is required!");
         else {
             redis.hget(Constants.REDIS_TODO_KEY, todoId, x -> {
                 if (x.succeeded()) {
